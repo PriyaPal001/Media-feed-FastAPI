@@ -38,16 +38,24 @@ async def upload_file(
             )
         )
 
-    post = Post(
-        caption=caption,
-        url="dummy url",
-        file_type="photo",
-        file_name="dummy name"
-    )
-    session.add(post)
-    await session.commit()
-    await session.refresh(post)
-    return post
+        if upload_result.response.http_status_code ==200:
+            post = Post(
+                caption=caption,
+                url=upload_result.url,
+                file_type="video" if file.content_type.startswith("video/") else "image",
+                file_name="upload_result.name"
+            )
+            session.add(post)
+            await session.commit()
+            await session.refresh(post)
+            return post
+    
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+    finally:
+        if temp_file_path and os.path.exists(temp_file_path):
+            os.unlink(temp_file_path)
+        file.file.close()
 
 @app.get("/feed")
 async def get_feed(
